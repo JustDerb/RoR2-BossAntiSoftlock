@@ -1,0 +1,8 @@
+# Visual Studio Generated Files
+/bin
+/obj
+/.vs
+ProtectTheVIP.csproj.user
+
+# Edit and rename ProtectTheVIP.FIXME.csproj to ProtectTheVIP.csproj
+BossAntiSoftlock.csproj
