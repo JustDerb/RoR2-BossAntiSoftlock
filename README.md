@@ -16,6 +16,11 @@ Simply type `/resetboss` in the in-game chat to reset the bosses on the map. The
 
 # Changelog
 
+### 1.0.1
+
+* Remove R2API dependency
+* Update code to work with the new Risk of Rain 2 DLC: Survivors of the Void
+
 ### 1.0.0
 
 * Initial release

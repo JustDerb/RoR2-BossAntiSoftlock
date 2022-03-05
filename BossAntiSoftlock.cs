@@ -1,21 +1,19 @@
 ﻿using BepInEx;
-using R2API.Utils;
 using RoR2;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+// Allow scanning for ConCommand, and other stuff for Risk of Rain 2
+[assembly: HG.Reflection.SearchableAttribute.OptIn]
 namespace ProtectTheVIP
 {
-    [BepInDependency(R2API.R2API.PluginGUID)]
     [BepInPlugin(GUID, ModName, Version)]
-    [R2APISubmoduleDependency(nameof(CommandHelper))]
-    [NetworkCompatibility(CompatibilityLevel.NoNeedForSync, VersionStrictness.DifferentModVersionsAreOk)]
     public class BossAntiSoftlock : BaseUnityPlugin
     {
         public const string GUID = "com.justinderby.bossantisoftlock";
         public const string ModName = "Boss Anti-Softlock";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
 
         //private GameObject TeleporterInstance;
         private Dictionary<CharacterMaster, Vector3> SpawnPositions;
@@ -26,8 +24,6 @@ namespace ProtectTheVIP
         {
             Instance = SingletonHelper.Assign(Instance, this);
             SpawnPositions = new Dictionary<CharacterMaster, Vector3>();
-
-            CommandHelper.AddToConsoleWhenReady();
 
             //On.RoR2.Run.OnServerTeleporterPlaced += TrackTeleporter;
             //On.RoR2.Run.OnServerSceneChanged += UntrackTeleporter;
@@ -62,7 +58,7 @@ namespace ProtectTheVIP
         }
 
         [ConCommand(commandName = "bas_reset_positions", flags = ConVarFlags.SenderMustBeServer, helpText = "")]
-        private static void ForceResetPositions(ConCommandArgs args)
+        private static void ForceResetPositions(ConCommandArgs _)
         {
             if (!Instance)
             {
