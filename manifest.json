@@ -1,6 +1,6 @@
 ﻿{
     "name": "BossAntiSoftlock",
-    "version_number": "1.0.1",
+    "version_number": "1.0.2",
     "website_url": "https://github.com/JustDerb/RoR2-BossAntiSoftlock",
     "description": "Prevent bosses from soft-locking your run when they get pushed too far away from the stage.",
     "dependencies": [

@@ -6,16 +6,16 @@ using UnityEngine;
 
 // Allow scanning for ConCommand, and other stuff for Risk of Rain 2
 [assembly: HG.Reflection.SearchableAttribute.OptIn]
-namespace ProtectTheVIP
+namespace BossAntiSoftlock
 {
     [BepInPlugin(GUID, ModName, Version)]
     public class BossAntiSoftlock : BaseUnityPlugin
     {
         public const string GUID = "com.justinderby.bossantisoftlock";
         public const string ModName = "Boss Anti-Softlock";
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.2";
 
-        //private GameObject TeleporterInstance;
+        private GameObject TeleporterInstance;
         private Dictionary<CharacterMaster, Vector3> SpawnPositions;
 
         public static BossAntiSoftlock Instance;
@@ -25,12 +25,11 @@ namespace ProtectTheVIP
             Instance = SingletonHelper.Assign(Instance, this);
             SpawnPositions = new Dictionary<CharacterMaster, Vector3>();
 
-            //On.RoR2.Run.OnServerTeleporterPlaced += TrackTeleporter;
-            //On.RoR2.Run.OnServerSceneChanged += UntrackTeleporter;
-
             On.RoR2.Run.OnServerBossAdded += TrackNewBoss;
             GlobalEventManager.onCharacterDeathGlobal += RemoveBoss;
             TeleporterInteraction.onTeleporterBeginChargingGlobal += SendModHint;
+
+            SceneDirector.onPostPopulateSceneServer += SceneDirector_onPostPopulateSceneServer;
 
             On.RoR2.Console.RunCmd += HandleCommand;
         }
@@ -39,14 +38,21 @@ namespace ProtectTheVIP
         {
             Instance = null;
 
-            //On.RoR2.Run.OnServerTeleporterPlaced -= TrackTeleporter;
-            //On.RoR2.Run.OnServerSceneChanged -= UntrackTeleporter;
-
             On.RoR2.Run.OnServerBossAdded -= TrackNewBoss;
             GlobalEventManager.onCharacterDeathGlobal -= RemoveBoss;
             TeleporterInteraction.onTeleporterBeginChargingGlobal -= SendModHint;
 
+            SceneDirector.onPostPopulateSceneServer -= SceneDirector_onPostPopulateSceneServer;
+
             On.RoR2.Console.RunCmd -= HandleCommand;
+
+            SpawnPositions.Clear();
+            TeleporterInstance = null;
+        }
+
+        private void SceneDirector_onPostPopulateSceneServer(SceneDirector director)
+        {
+            TeleporterInstance = director.teleporterInstance;
         }
 
         private void SendModChat(string message)
@@ -94,7 +100,14 @@ namespace ProtectTheVIP
                 case "/reset_bosses":
                     List<CharacterMaster> characters = Instance.GetEligibleBossCharacters();
                     SendModChat($"Resetting boss positions... ({characters.Count} boss{(characters.Count == 1 ? "" : "es")})");
-                    Instance.ResetCharactersPositions(characters);
+                    try
+                    {
+                        ResetCharactersPositions(characters);
+                    } catch (Exception e)
+                    {
+                        Debug.LogException(e);
+                        SendModChat("Error resetting boss positions; check console for more info!");
+                    }
                     break;
             }
         }
@@ -135,41 +148,6 @@ namespace ProtectTheVIP
             }
         }
 
-        //private void TrackTeleporter(On.RoR2.Run.orig_OnServerTeleporterPlaced orig, Run self, SceneDirector sceneDirector, GameObject teleporter)
-        //{
-        //    try
-        //    {
-        //        TeleporterInstance = teleporter;
-        //    }
-        //    catch(Exception ex)
-        //    {
-        //        Debug.LogException(ex);
-        //    }
-        //    finally
-        //    {
-        //        orig(self, sceneDirector, teleporter);
-        //    }
-        //}
-        //private void UntrackTeleporter(On.RoR2.Run.orig_OnServerSceneChanged orig, Run self, string sceneName)
-        //{
-        //    try
-        //    {
-        //        TeleporterInstance = null;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.LogException(ex);
-        //    }
-        //    finally
-        //    {
-        //        orig(self, sceneName);
-        //    }
-        //}
-        //private float DistanceBetween(GameObject obj1, GameObject obj2)
-        //{
-        //    return Vector3.Distance(obj1.transform.position, obj2.transform.position);
-        //}
-
         private List<CharacterMaster> GetAllBossCharacters()
         {
             List<CharacterMaster> eligible = new List<CharacterMaster>();
@@ -204,16 +182,15 @@ namespace ProtectTheVIP
         {
             foreach(CharacterMaster characterMaster in characterMasters)
             {
-                if (!SpawnPositions.TryGetValue(characterMaster, out Vector3 spawnPoint))
-                {
-                    // TODO: Use teleporterobject to pick a good spawn point (and add it to the dictionary)
-                    Debug.LogError($"{GUID} - Got CharacterMaster that should have been in the spawn list!");
-                    continue;
-                }
-
                 CharacterBody body = characterMaster.GetBody();
                 if (body != null)
                 {
+                    if (!SpawnPositions.TryGetValue(characterMaster, out Vector3 spawnPoint))
+                    {
+                        Debug.LogError($"{GUID} - Got CharacterMaster that should have been in the spawn list!");
+                        spawnPoint = Run.instance.FindSafeTeleportPosition(body, TeleporterInstance.transform);
+                    }
+
                     TeleportHelper.TeleportBody(body, spawnPoint);
 
                     GameObject bodyObject = characterMaster.GetBodyObject();
@@ -225,21 +202,14 @@ namespace ProtectTheVIP
                         }
 
                         // Add some effects
-                        GameObject gameObject = Resources.Load<GameObject>("Prefabs/Effects/HippoRezEffect");
-                        if (gameObject)
+                        GameObject teleportEffectPrefab = Run.instance.GetTeleportEffectPrefab(bodyObject.gameObject);
+                        if (teleportEffectPrefab)
                         {
-                            EffectManager.SpawnEffect(gameObject, new EffectData
-                            {
-                                origin = spawnPoint,
-                                rotation = bodyObject.transform.rotation,
-                                scale = characterMaster.GetBody().radius,
-                            }, true);
+                            EffectManager.SimpleEffect(gameObject, spawnPoint, Quaternion.identity, true);
                         }
                     }
                 }
             }
         }
-
-        
     }
 }

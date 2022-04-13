@@ -16,6 +16,11 @@ Simply type `/resetboss` in the in-game chat to reset the bosses on the map. The
 
 # Changelog
 
+### 1.0.2
+
+* Code cleanup
+* Actually handle edge-case if Boss isn't in spawn list
+
 ### 1.0.1
 
 * Remove R2API dependency
