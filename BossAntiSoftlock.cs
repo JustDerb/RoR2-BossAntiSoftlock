@@ -191,7 +191,8 @@ namespace BossAntiSoftlock
                         spawnPoint = Run.instance.FindSafeTeleportPosition(body, TeleporterInstance.transform);
                     }
 
-                    TeleportHelper.TeleportBody(body, spawnPoint);
+                    Debug.Log($"{GUID} - Teleporting {body} to {spawnPoint}");
+                    TeleportHelper.TeleportGameObject(body.gameObject, spawnPoint);
 
                     GameObject bodyObject = characterMaster.GetBodyObject();
                     if (bodyObject)
@@ -205,7 +206,7 @@ namespace BossAntiSoftlock
                         GameObject teleportEffectPrefab = Run.instance.GetTeleportEffectPrefab(bodyObject.gameObject);
                         if (teleportEffectPrefab)
                         {
-                            EffectManager.SimpleEffect(gameObject, spawnPoint, Quaternion.identity, true);
+                            EffectManager.SimpleEffect(teleportEffectPrefab, spawnPoint, Quaternion.identity, true);
                         }
                     }
                 }
