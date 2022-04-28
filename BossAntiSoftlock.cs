@@ -98,6 +98,8 @@ namespace BossAntiSoftlock
                 case "/resetbosses":
                 case "/reset_boss":
                 case "/reset_bosses":
+                case "/br":
+                case "/rb":
                     List<CharacterMaster> characters = Instance.GetEligibleBossCharacters();
                     SendModChat($"Resetting boss positions... ({characters.Count} boss{(characters.Count == 1 ? "" : "es")})");
                     try
