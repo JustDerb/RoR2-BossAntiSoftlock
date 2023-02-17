@@ -15,11 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="MMHOOK_Assembly-CSharp">
-      <HintPath>..\..\..\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\MMHOOK\MMHOOK_Assembly-CSharp.dll</HintPath>
-    </Reference>
     <Reference Include="MMHOOK_RoR2">
-      <HintPath>..\..\..\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\MMHOOK\MMHOOK_RoR2.dll</HintPath>
+      <HintPath>libs\MMHOOK_RoR2-nstrip.dll</HintPath>
     </Reference>
   </ItemGroup>
 
