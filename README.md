@@ -18,9 +18,9 @@ Simply type `/resetboss` in the in-game chat to reset the bosses on the map. The
 
 ### 1.0.3
 
-* Simulacrum support 
+* Added Simulacrum support 
 * Added ability to reset void monsters for void seeds
-* Configuration
+* Added ability to silence mod hint
 
 ### 1.0.2
 

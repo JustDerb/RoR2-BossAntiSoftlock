@@ -3,7 +3,6 @@ using BepInEx.Configuration;
 using RoR2;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 // Allow scanning for ConCommand, and other stuff for Risk of Rain 2
@@ -17,7 +16,6 @@ namespace BossAntiSoftlock
         public const string ModName = "Boss Anti-Softlock";
         public const string Version = "1.0.3";
 
-        private GameObject TeleporterInstance;
         public static Dictionary<CharacterBody, Vector3> SpawnPositions = new Dictionary<CharacterBody, Vector3>();
         public static ConfigFile Configuration;
         public static ConfigEntry<bool> ModHint;
@@ -28,15 +26,13 @@ namespace BossAntiSoftlock
         {
             Instance = SingletonHelper.Assign(Instance, this);
             Configuration = new ConfigFile(System.IO.Path.Combine(Paths.ConfigPath, GUID + ".cfg"), true);
-            ModHint = Configuration.Bind("General", "Show Hints", true, "Whether to send reminder every time teleporter event has started.");
+            ModHint = Configuration.Bind("General", "Show Hints", true, "Whether to send a reminder every time the teleporter event has started.");
             ResetVoid = Configuration.Bind("General", "Reset Voidtouched Monsters", true, "Whether to also reset voidtouched monsters.");
 
             Stage.onStageStartGlobal += _ => SpawnPositions.Clear();
-            On.RoR2.Run.OnServerCharacterBodySpawned += TrackNewBoss;
-            GlobalEventManager.onCharacterDeathGlobal += RemoveBoss;
-            if (ModHint.Value) TeleporterInteraction.onTeleporterBeginChargingGlobal += SendModHint;
-
-            SceneDirector.onPostPopulateSceneServer += SceneDirector_onPostPopulateSceneServer;
+            On.RoR2.Run.OnServerCharacterBodySpawned += TrackNewMonster;
+            GlobalEventManager.onCharacterDeathGlobal += RemoveMonster;
+            TeleporterInteraction.onTeleporterBeginChargingGlobal += SendModHint;
 
             On.RoR2.Console.RunCmd += HandleCommand;
         }
@@ -46,21 +42,13 @@ namespace BossAntiSoftlock
             Instance = null;
 
             Stage.onStageStartGlobal -= _ => SpawnPositions.Clear();
-            On.RoR2.Run.OnServerCharacterBodySpawned -= TrackNewBoss;
-            GlobalEventManager.onCharacterDeathGlobal -= RemoveBoss;
-            if (ModHint.Value) TeleporterInteraction.onTeleporterBeginChargingGlobal -= SendModHint;
-
-            SceneDirector.onPostPopulateSceneServer -= SceneDirector_onPostPopulateSceneServer;
+            On.RoR2.Run.OnServerCharacterBodySpawned -= TrackNewMonster;
+            GlobalEventManager.onCharacterDeathGlobal -= RemoveMonster;
+            TeleporterInteraction.onTeleporterBeginChargingGlobal -= SendModHint;
 
             On.RoR2.Console.RunCmd -= HandleCommand;
 
             SpawnPositions.Clear();
-            TeleporterInstance = null;
-        }
-
-        private void SceneDirector_onPostPopulateSceneServer(SceneDirector director)
-        {
-            TeleporterInstance = director.teleporterInstance;
         }
 
         private void SendModChat(string message)
@@ -71,13 +59,15 @@ namespace BossAntiSoftlock
             });
         }
 
+#pragma warning disable IDE0051 // Remove unused private members
         [ConCommand(commandName = "bas_reset_positions", flags = ConVarFlags.SenderMustBeServer, helpText = "")]
         private static void ForceResetPositions(ConCommandArgs _)
+#pragma warning restore IDE0051 // Remove unused private members
         {
             if (!Instance) return;
 
-            Debug.Log($"Resetting all boss positions...");
-            Instance.ResetCharactersPositions(GetBoss());
+            Debug.Log($"Resetting all monster positions...");
+            Instance.ResetCharactersPositions(GetBosses());
         }
 
         private void HandleCommand(On.RoR2.Console.orig_RunCmd orig, RoR2.Console self, RoR2.Console.CmdSender sender, string concommandName, List<string> userArgs)
@@ -94,7 +84,7 @@ namespace BossAntiSoftlock
                 return;
             }
 
-            String command = userArgs[0];
+            string command = userArgs[0];
             switch(command.ToLower())
             {
                 case "/bossreset":
@@ -105,8 +95,8 @@ namespace BossAntiSoftlock
                 case "/reset_bosses":
                 case "/br":
                 case "/rb":
-                    List<CharacterBody> bosses = GetBoss();
-                    SendModChat($"Resetting boss positions... ({bosses.Count} boss{(bosses.Count == 1 ? "" : "es")})");
+                    List<CharacterBody> bosses = GetBosses();
+                    SendModChat($"Resetting monster positions... ({bosses.Count} monster{(bosses.Count == 1 ? "" : "s")})");
                     try
                     {
                         ResetCharactersPositions(bosses);
@@ -121,29 +111,46 @@ namespace BossAntiSoftlock
 
         private void SendModHint(TeleporterInteraction obj)
         {
-            SendModChat("Type '/bossreset' to reset boss positions.");
+            if (!ModHint.Value)
+            {
+                return;
+            }
+            SendModChat("Type '/bossreset' to reset monster positions.");
         }
 
-        private void TrackNewBoss(On.RoR2.Run.orig_OnServerCharacterBodySpawned orig, Run self, CharacterBody body)
+        private void TrackNewMonster(On.RoR2.Run.orig_OnServerCharacterBodySpawned orig, Run self, CharacterBody body)
         {
             orig(self, body);
-            if (body.gameObject == null || !body.isActiveAndEnabled) return;
+
+            if (body.gameObject == null || !body.isActiveAndEnabled || body.isPlayerControlled)
+            {
+                return;
+            }
             SpawnPositions.Add(body, body.footPosition);
         }
 
-        private static List<CharacterBody> GetBoss()
+        private static List<CharacterBody> GetBosses()
         {
             List<CharacterBody> ret = new List<CharacterBody>();
             foreach (CharacterBody body in SpawnPositions.Keys)
             {
-                if (body?.gameObject == null || !body.isActiveAndEnabled) continue;
-                if (body.isBoss || Run.instance is InfiniteTowerRun) ret.Add(body);
-                else if (ResetVoid.Value && body.teamComponent.teamIndex == TeamIndex.Void) ret.Add(body);
+                if (body?.gameObject == null || !body.isActiveAndEnabled)
+                {
+                    continue;
+                }
+                if (body.isBoss ||
+                    // Track and return all monsters in Simulacrum
+                    Run.instance is InfiniteTowerRun ||
+                    // If configured, return void touched monsters too
+                    (ResetVoid.Value && body.teamComponent.teamIndex == TeamIndex.Void))
+                {
+                    ret.Add(body);
+                }
             }
             return ret;
         }
 
-        private void RemoveBoss(DamageReport report)
+        private void RemoveMonster(DamageReport report)
         {
             if (report?.victimBody != null)
             {

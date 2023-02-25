@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <Reference Include="MMHOOK_RoR2">
-      <HintPath>libs\MMHOOK_RoR2-nstrip.dll</HintPath>
+      <HintPath>..\..\..\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\MMHOOK\MMHOOK_RoR2.dll</HintPath>
     </Reference>
   </ItemGroup>
 
