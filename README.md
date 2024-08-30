@@ -16,6 +16,14 @@ Simply type `/resetboss` in the in-game chat to reset the bosses on the map. The
 
 # Changelog
 
+### 1.0.5
+
+* Update code to work with the new Risk of Rain 2 DLC: Seekers of the Storm
+
+### 1.0.4
+
+* Break fix
+
 ### 1.0.3
 
 * Added Simulacrum support 

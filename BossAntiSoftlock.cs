@@ -14,7 +14,7 @@ namespace BossAntiSoftlock
     {
         public const string GUID = "com.justinderby.bossantisoftlock";
         public const string ModName = "Boss Anti-Softlock";
-        public const string Version = "1.0.3";
+        public const string Version = "1.0.5";
 
         public static Dictionary<CharacterBody, Vector3> SpawnPositions = new Dictionary<CharacterBody, Vector3>();
         public static ConfigFile Configuration;
@@ -171,7 +171,7 @@ namespace BossAntiSoftlock
                     continue;
                 }
                 Debug.Log($"{GUID} - Teleporting {body} to {SpawnPositions[body]}");
-                TeleportHelper.TeleportGameObject(body.gameObject, SpawnPositions[body]);
+                TeleportHelper.TeleportBody(body, SpawnPositions[body]);
 
                 GameObject bodyObject = body.gameObject;
                 if (bodyObject)
