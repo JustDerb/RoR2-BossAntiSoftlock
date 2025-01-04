@@ -9,9 +9,16 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
-    <PackageReference Include="RiskOfRain2.GameLibs" Version="1.2.1-r.0" />
-    <PackageReference Include="UnityEngine.Modules" Version="2019.4.26" />
+    <PackageReference Include="BepInEx.Core" Version="5.4.21">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="RiskOfRain2.GameLibs" Version="1.3.6-r.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="UnityEngine.Modules" Version="2019.4.26">
+      <ExcludeAssets>runtime</ExcludeAssets>
+      <PrivateAssets>none</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -20,8 +27,14 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="language.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\$(TargetFileName)&quot;&#xD;&#xA;copy /Y &quot;$(SolutionDir)manifest.json&quot;  &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\&quot;&#xD;&#xA;copy /Y &quot;$(SolutionDir)icon.png&quot;  &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\&quot;&#xD;&#xA;copy /Y &quot;$(SolutionDir)README.md&quot;  &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\&quot;" />
+    <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\$(TargetFileName)&quot;&#xD;&#xA;copy /Y &quot;$(SolutionDir)manifest.json&quot;  &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\&quot;&#xD;&#xA;copy /Y &quot;$(SolutionDir)icon.png&quot;  &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\&quot;&#xD;&#xA;copy /Y &quot;$(SolutionDir)*.md&quot;  &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\&quot;&#xD;&#xA;copy /Y &quot;$(SolutionDir)language.json&quot; &quot;C:\Users\justd\AppData\Roaming\r2modmanPlus-local\RiskOfRain2\profiles\Testing\BepInEx\plugins\JustDerb-BossAntiSoftlock\BossAntiSoftlock.language&quot;" />
   </Target>
 
 </Project>

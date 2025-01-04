@@ -1,9 +1,12 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using RoR2;
+using RoR2.UI;
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Networking;
 
 // Allow scanning for ConCommand, and other stuff for Risk of Rain 2
 [assembly: HG.Reflection.SearchableAttribute.OptIn]
@@ -14,10 +17,9 @@ namespace BossAntiSoftlock
     {
         public const string GUID = "com.justinderby.bossantisoftlock";
         public const string ModName = "Boss Anti-Softlock";
-        public const string Version = "1.0.5";
+        public const string Version = "1.0.6";
 
         public static Dictionary<CharacterBody, Vector3> SpawnPositions = new Dictionary<CharacterBody, Vector3>();
-        public static ConfigFile Configuration;
         public static ConfigEntry<bool> ModHint;
         public static ConfigEntry<bool> ResetVoid;
         public static BossAntiSoftlock Instance;
@@ -25,15 +27,14 @@ namespace BossAntiSoftlock
         public void Awake()
         {
             Instance = SingletonHelper.Assign(Instance, this);
-            Configuration = new ConfigFile(System.IO.Path.Combine(Paths.ConfigPath, GUID + ".cfg"), true);
-            ModHint = Configuration.Bind("General", "Show Hints", true, "Whether to send a reminder every time the teleporter event has started.");
-            ResetVoid = Configuration.Bind("General", "Reset Voidtouched Monsters", true, "Whether to also reset voidtouched monsters.");
+            ModHint = Config.Bind("General", "Show Hints", true, "Whether to send a reminder every time the teleporter event has started.");
+            ResetVoid = Config.Bind("General", "Reset Voidtouched Monsters", true, "Whether to also reset voidtouched monsters.");
 
             Stage.onStageStartGlobal += _ => SpawnPositions.Clear();
             On.RoR2.Run.OnServerCharacterBodySpawned += TrackNewMonster;
             GlobalEventManager.onCharacterDeathGlobal += RemoveMonster;
             TeleporterInteraction.onTeleporterBeginChargingGlobal += SendModHint;
-
+            On.RoR2.UI.PauseScreenController.Awake += AddResetBossesButton;
             On.RoR2.Console.RunCmd += HandleCommand;
         }
 
@@ -45,10 +46,33 @@ namespace BossAntiSoftlock
             On.RoR2.Run.OnServerCharacterBodySpawned -= TrackNewMonster;
             GlobalEventManager.onCharacterDeathGlobal -= RemoveMonster;
             TeleporterInteraction.onTeleporterBeginChargingGlobal -= SendModHint;
-
+            On.RoR2.UI.PauseScreenController.Awake -= AddResetBossesButton;
             On.RoR2.Console.RunCmd -= HandleCommand;
 
             SpawnPositions.Clear();
+        }
+
+        private void AddResetBossesButton(On.RoR2.UI.PauseScreenController.orig_Awake orig, RoR2.UI.PauseScreenController self)
+        {
+            orig(self);
+            // Only show this while in a game and only while hosting a game
+            if (Run.instance == null || PreGameController.instance != null || !NetworkServer.active)
+            {
+                return;
+            }
+
+            Transform firstButton = self.mainPanel.GetChild(0).GetChild(1);
+            // Use the first button and copy it so we don't need to do a lot of work here
+            Transform resetMonstersButton = Instantiate(firstButton, self.mainPanel.GetChild(0));
+            resetMonstersButton.name = "GenericMenuButton (Reset Bosses)";
+            resetMonstersButton.SetSiblingIndex(firstButton.GetSiblingIndex() + 1);
+
+            TextMeshProUGUI resetMonstersButtonText = resetMonstersButton.GetComponentInChildren<HGTextMeshProUGUI>();
+            resetMonstersButtonText.SetText(Language.GetStringFormatted("BAS_MENU_RESET_BOSSES"));
+
+            HGButton resetMonstersHGButton = resetMonstersButton.GetComponent<HGButton>();
+            resetMonstersHGButton.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+            resetMonstersHGButton.onClick.AddListener(ResetAllBosses);
         }
 
         private void SendModChat(string message)
@@ -64,7 +88,7 @@ namespace BossAntiSoftlock
         private static void ForceResetPositions(ConCommandArgs _)
 #pragma warning restore IDE0051 // Remove unused private members
         {
-            if (!Instance) return;
+            if (Instance == null) return;
 
             Debug.Log($"Resetting all monster positions...");
             Instance.ResetCharactersPositions(GetBosses());
@@ -95,17 +119,23 @@ namespace BossAntiSoftlock
                 case "/reset_bosses":
                 case "/br":
                 case "/rb":
-                    List<CharacterBody> bosses = GetBosses();
-                    SendModChat($"Resetting monster positions... ({bosses.Count} monster{(bosses.Count == 1 ? "" : "s")})");
-                    try
-                    {
-                        ResetCharactersPositions(bosses);
-                    } catch (Exception e)
-                    {
-                        Debug.LogException(e);
-                        SendModChat("Error resetting boss positions; check console for more info!");
-                    }
+                    ResetAllBosses();
                     break;
+            }
+        }
+
+        private void ResetAllBosses()
+        {
+            List<CharacterBody> bosses = GetBosses();
+            SendModChat($"Resetting monster positions... ({bosses.Count} monster{(bosses.Count == 1 ? "" : "s")})");
+            try
+            {
+                ResetCharactersPositions(bosses);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                SendModChat("Error resetting boss positions; check console for more info!");
             }
         }
 
@@ -171,7 +201,7 @@ namespace BossAntiSoftlock
                     continue;
                 }
                 Debug.Log($"{GUID} - Teleporting {body} to {SpawnPositions[body]}");
-                TeleportHelper.TeleportBody(body, SpawnPositions[body]);
+                TeleportHelper.TeleportBody(body, SpawnPositions[body], false);
 
                 GameObject bodyObject = body.gameObject;
                 if (bodyObject)
